@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>SSO Test</title>
+    <script src="http://35.226.187.230:5500/OpenSSO.js"></script>
+    <script>
+        const companyId="67e0583e171ed9ecbb8513a4"
+        const authFront = new CompanyAuthFront({companyId});
+
+async function handleLogin() {
+    try {
+        // authFront.coldLogin()
+        let result = await authFront.login();
+        // if(!result.token){
+        //     result=await authFront.login();
+        // }
+        alert("Login successful: " + result.token);
+        document.getElementById("tokenDisplay").textContent = "Received Token: " + authFront.getUserToken();
+    } catch (err) {
+        alert("Login failed: " + err.error);
+    }
+}
+
+async function handleAuthenticate() {
+    const token = authFront.getUserToken();
+    if (!token) {
+        alert("No token found. Please login first.");
+        return;
+    }
+
+    const response = await fetch("/authenticate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+    });
+
+    const data = await response.json();
+    console.log(data)
+    alert(data.success ? `Authenticated: ${JSON.stringify(data.user)}` : `Failed: ${data.error}`);
+}
+
+async function handleLogout() {
+    const token = authFront.getUserToken();
+    if (!token) {
+        alert("No token found. Please login first.");
+        return;
+    }
+
+    const response = await fetch("/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+    });
+    authFront.logout()
+    const data = await response.json();
+    if (data.success) {
+        localStorage.removeItem(`userToken_${companyId}`);
+        document.getElementById("tokenDisplay").textContent = "No token";
+        alert("Logged out successfully");
+    } else {
+        alert("Logout failed: " + data.error);
+    }
+}
+    </script>
+</head>
+<body>
+    <h1>SSO Testing Page</h1>
+    <p id="tokenDisplay">No token</p>
+    <button onclick="handleLogin()">Login</button>
+    <button onclick="handleAuthenticate()">Authenticate</button>
+    <button onclick="handleLogout()">Logout</button>
+</body>
+</html>
